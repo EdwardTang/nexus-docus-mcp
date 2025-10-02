@@ -20,23 +20,22 @@ Build an MCP (Model Context Protocol) server that provides Qumulo support engine
 ### Technology Stack
 - **MCP Server Runtime**: Node.js 20+ with TypeScript for proven ecosystem and MCP SDK support
 - **MCP Framework**: `@modelcontextprotocol/sdk` for protocol compliance and tool/resource handling
-- **Vector Database**: ChromaDB for MVP (embedded, zero-config), Qdrant for production (distributed, scalable)
+- **Vector Database**: In-mermory FAISS Vector Store
 - **Embeddings**: OpenAI `text-embedding-3-small` (1536 dims) for quality, with local `sentence-transformers` as fallback
 - **Cache Layer**: Redis 7+ for telemetry caching and query result optimization
-- **RAG Framework**: LangChain for document chunking and retrieval orchestration
+- **RAG Framework**: LangChain for document chunking and retrieval orchestration, Let's use hybrid dense+sparse and rescoring 
 
 ### Design Patterns
 - **Stateless MCP Server**: Horizontal scaling with shared state in Redis/Vector DB
 - **Tool-Based Architecture**: Each capability (search_docs, get_telemetry, analyze_api, diagnose_issue) as discrete MCP tool
 - **Resource-Based Access**: Documentation and telemetry exposed as MCP resources with URI patterns
 - **Async Processing**: Non-blocking telemetry fetches with connection pooling and batching
-- **Graceful Degradation**: Core documentation search works even if telemetry unavailable
+- **Graceful Degradation**: Core documentation search works even if telemetry unavailable. Focus recall.
 
 ### Key Technical Decisions
-1. **Start Simple, Scale Later**: MVP with ChromaDB embedded database, migrate to Qdrant when proven
+1. **Start Simple, Scale Later**: MVP with in-mem FAISS embedded database, migrate to Qdrant when proven
 2. **Leverage Managed Services**: Use OpenAI embeddings initially, transition to local models only if cost prohibitive
-3. **Polling Over Streaming**: Telemetry via polling (30s-5min) for simplicity, add streaming if real-time requirements emerge
-4. **Citation-First**: Every response must include verifiable links to docs.qumulo.com with section context
+3. **Citation-First**: Every response must include verifiable links to docs.qumulo.com with section context
 
 ## Technical Approach
 
@@ -45,7 +44,7 @@ Build an MCP (Model Context Protocol) server that provides Qumulo support engine
 #### MCP Server Core (Node.js/TypeScript)
 - **Protocol Handler**: JSON-RPC 2.0 over stdio/HTTP/SSE for MCP client communication
 - **Tool Registry**: Dynamic tool registration and invocation routing
-- **Resource Manager**: URI-based resource access for docs and telemetry
+- **Resource Manager**: URI-based resource access for docs 
 - **Authentication**: API key validation for chatbot clients, encrypted Qumulo cluster credentials
 
 #### RAG Engine
@@ -55,11 +54,11 @@ Build an MCP (Model Context Protocol) server that provides Qumulo support engine
 - **Query Processing**: Embed query → vector similarity search (k=5-10, cosine >0.7) → optional cross-encoder rerank → citation generation
 - **Citation Mapping**: Link chunk metadata to docs.qumulo.com URLs with section headers and relevance scores
 
-#### Telemetry Integration
-- **API Client Pool**: Connection pooling (max 50/cluster) with auth token caching (1h TTL)
+#### Telemetry Integration (!!!Just stub it for now!!!!)
+<!-- - **API Client Pool**: Connection pooling (max 50/cluster) with auth token caching (1h TTL)
 - **Metrics Aggregation**: Fetch capacity, performance, health, alerts from Qumulo REST APIs
 - **Time-Series Cache**: Redis with 1-hour retention for fast lookback and pre-aggregated stats
-- **Correlation Engine**: Match telemetry anomalies with documentation troubleshooting sections
+- **Correlation Engine**: Match telemetry anomalies with documentation troubleshooting sections -->
 
 #### API Analyzer
 - **Endpoint Documentation**: Map API calls to documentation with parameters, schemas, examples
@@ -69,7 +68,7 @@ Build an MCP (Model Context Protocol) server that provides Qumulo support engine
 ### Infrastructure
 
 #### Development Environment
-- **Docker Compose**: MCP server + ChromaDB + Redis + Nexus chatbot for local development
+- **Docker Compose**: MCP server + FAISS + Redis + Nexus chatbot for local development
 - **Volume Persistence**: Separate volumes for vector DB data and Redis cache
 
 #### Production Deployment (Kubernetes)
@@ -91,18 +90,19 @@ Build an MCP (Model Context Protocol) server that provides Qumulo support engine
 
 **Tasks**:
 1. **MCP Server Scaffold**: Set up Node.js project with TypeScript, MCP SDK, and basic tool registry
-2. **Document Ingestion Pipeline**: Parse qumulo-docs.txt, chunk with LangChain, embed with OpenAI, store in ChromaDB
+2. **Document Ingestion Pipeline**: Parse qumulo-docs.txt, chunk with LangChain, embed with OpenAI, store in FAISS
 3. **search_docs Tool**: Implement semantic search with vector similarity, citation generation, and docs.qumulo.com linking
 4. **Nexus Chatbot Integration**: Connect chatbot client to MCP server, test end-to-end query flow
 
 **Success Criteria**: Support engineer can search documentation via chatbot and receive cited answers in <2s
 
-### Phase 2: Telemetry Integration (4-6 weeks)
+### Phase 2: Telemetry Integration (4-6 weeks) (Just stub it)
 **Goal**: Add real-time cluster monitoring and correlation with documentation
 
 **Tasks**:
 5. **Qumulo API Client**: Build connection pool, auth management, metrics fetching (capacity/performance/health/alerts)
-6. **get_telemetry Tool**: Implement telemetry retrieval with Redis caching and formatting for chat display
+6. **get_telemetry Tool**: (!! Just stub it for now!!!)
+        //Implement telemetry retrieval with Redis caching and formatting for chat display
 7. **diagnose_issue Tool**: Correlate telemetry anomalies with troubleshooting documentation
 8. **Multi-Cluster Support**: Handle concurrent connections to multiple Qumulo clusters
 
@@ -136,7 +136,7 @@ High-level task categories (8 total):
 1. **MCP Server Foundation**: Set up Node.js/TypeScript project, MCP SDK integration, tool/resource registry, health endpoints
 2. **RAG Engine Implementation**: Document parsing, chunking pipeline, embedding generation, ChromaDB integration, citation mapping
 3. **Documentation Search Tool**: Implement search_docs with vector similarity, filtering, reranking, citation generation
-4. **Telemetry Integration**: Qumulo API client, connection pooling, metrics aggregation, Redis caching
+4. **Telemetry Integration**: (Just stub it) Qumulo API client, connection pooling, metrics aggregation, Redis caching
 5. **Correlation & Diagnostics**: diagnose_issue tool connecting telemetry anomalies with troubleshooting docs
 6. **API Documentation Tool**: analyze_api_call with version tracking, schema documentation, code examples
 7. **Chatbot Client Integration**: MCP client setup in Nexus chatbot, query routing, response rendering
@@ -146,7 +146,7 @@ High-level task categories (8 total):
 
 ### External Services
 - **OpenAI API**: For embedding generation (fallback: local sentence-transformers)
-- **Qumulo Cluster APIs**: For real-time telemetry (graceful degradation if unavailable)
+- **Qumulo Cluster APIs**: For real-time telemetry (graceful degradation if unavailable) (!!!! Stub it for now !!!!)
 - **Nexus Chatbot Platform**: For client integration and user interface
 
 ### Internal Prerequisites
@@ -164,14 +164,12 @@ High-level task categories (8 total):
 ### Performance Benchmarks
 - **Query Response Time**: p95 < 2s for documentation search (from query to formatted response)
 - **Vector Search Latency**: p95 < 500ms for similarity search
-- **Telemetry Fetch**: p95 < 300ms per cluster metric retrieval
 - **Cache Hit Rate**: >80% for telemetry queries (reducing API load)
 - **Concurrent Sessions**: Support 100+ simultaneous chat sessions without degradation
 
 ### Quality Gates
 - **Answer Accuracy**: >90% of responses rated "helpful" by support engineers
 - **Citation Correctness**: 100% of citations link to valid docs.qumulo.com pages
-- **Telemetry Reliability**: <1% error rate for cluster API calls (with retry logic)
 - **System Uptime**: 99.9% availability for MCP server
 
 ### Acceptance Criteria
@@ -195,7 +193,7 @@ High-level task categories (8 total):
 
 ### Critical Path Items
 1. **Document Ingestion Pipeline**: Blocks all search functionality (Week 1-2)
-2. **MCP Tool Implementation**: search_docs must work before telemetry integration (Week 2-4)
+2. **MCP Tool Implementation**: search_docs must work before telemetry integration (!!! Just stub it!!!) (Week 2-4)
 3. **Chatbot Client Integration**: Blocks end-to-end testing and user feedback (Week 5-6)
 4. **Production Deployment**: Blocks beta rollout to support engineers (Week 10-12)
 
@@ -209,8 +207,8 @@ High-level task categories (8 total):
 - [ ] #2 - MCP Server Foundation Setup (parallel: true)
 - [ ] #3 - Document Ingestion & RAG Pipeline (parallel: false)
 - [ ] #4 - Search Docs MCP Tool Implementation (parallel: false)
-- [ ] #5 - Qumulo API Client & Telemetry Integration (parallel: true)
-- [ ] #6 - Get Telemetry & Diagnose Issue MCP Tools (parallel: false)
+- [ ] #5 - Qumulo API Client & Telemetry Integration (parallel: true)  /// (!!!! Not important, stub it)
+- [ ] #6 - Get Telemetry & Diagnose Issue MCP Tools (parallel: false)  /// (!!!! Not important, stub it)
 - [ ] #7 - API Documentation Tool (parallel: true)
 - [ ] #8 - Nexus Chatbot MCP Client Integration (parallel: false)
 - [ ] #9 - Production Deployment & Monitoring (parallel: false)
